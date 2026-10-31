@@ -3,10 +3,11 @@ import { useAuth } from "./auth";
 import BusinessDashboard from "./pages/BusinessDashboard";
 import SpecialistDashboard from "./pages/SpecialistDashboard";
 import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
 import MissionReportPage from "./pages/MissionReportPage";
 
 function Shell({ children }: { children: React.ReactNode }) {
-  const { user, logout } = useAuth();
+  const { user, logout, loading } = useAuth();
   return (
     <div className="app-shell">
       <header className="top-bar">
@@ -28,7 +29,8 @@ function Shell({ children }: { children: React.ReactNode }) {
 }
 
 function HomeRedirect() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  if (loading) return <p className="muted">Loading…</p>;
   if (!user) return <Navigate to="/login" replace />;
   if (user.role === "business") return <Navigate to="/business" replace />;
   return <Navigate to="/specialist" replace />;
@@ -40,6 +42,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<HomeRedirect />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
         <Route path="/business" element={<BusinessDashboard />} />
         <Route path="/business/missions/:id/report" element={<MissionReportPage />} />
         <Route path="/specialist" element={<SpecialistDashboard />} />

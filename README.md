@@ -35,7 +35,7 @@ export DATABASE_URL="postgresql://..."
 npm run migrate
 ```
 
-Tables: `users`, `businesses`, `specialists`, `missions`, `mission_assignments`, `reports`, `report_photos`.
+Tables: `users`, `businesses`, `specialists`, `missions`, `mission_assignments`, `reports`, `report_photos`, `sessions` (see `migrations/002_auth.sql` for `password_hash` + sessions).
 
 ## 3. API Worker
 
@@ -80,6 +80,8 @@ cd apps/api && npx wrangler deploy
 | `REPORT_PHOTOS` | **R2 bucket** | Report photo objects (`css-report-photos`) |
 | `ENVIRONMENT` | Var | Optional label (`development` in `wrangler.toml`) |
 
+Auth uses **opaque session tokens** stored in Postgres (`sessions` table). Passwords are hashed in the Worker with WebCrypto PBKDF2-SHA256. **No `JWT_SECRET` is required** for the current implementation.
+
 ## 4. Web app (Cloudflare Pages)
 
 ```bash
@@ -101,14 +103,17 @@ Set Pages environment variable:
 
 `apps/web/wrangler.toml` documents `pages_build_output_dir = "dist"`.
 
-## 5. Core loop (stub auth)
+## 5. Core loop (email + password auth)
 
-1. **Business** — `/login` → stub sign-in → post a mission on `/business`.
-2. **Specialist** — stub sign-in (level ≥ mission requirement) → accept on `/specialist`.
-3. Submit report with **photo** (multipart upload → R2 + DB).
-4. **Business** — open **View report** on a completed mission (text + photo via API).
+1. **Register** at `/register` (business or specialist) or **sign in** at `/login`.
+2. **Business** — post a mission on `/business`.
+3. **Specialist** — accept an open mission on `/specialist` (level ≥ mission requirement).
+4. Submit report with **photo** (multipart upload → R2 + DB).
+5. **Business** — open **View report** on a completed mission (text + photo via API).
 
-Auth stub: `POST /auth/stub` returns `token` (user UUID). Send `Authorization: Bearer <token>` on protected routes.
+Sessions: `POST /auth/login` or `/auth/register` returns a `token`. Send `Authorization: Bearer <token>` on protected routes. `POST /auth/logout` revokes the session; `GET /auth/me` returns the current user.
+
+After upgrading an existing database, run `npm run migrate` so `002_auth.sql` is applied. Users created before real auth have no password and must register again or reset via a future admin flow.
 
 ## 6. Tests
 
@@ -116,13 +121,16 @@ Auth stub: `POST /auth/stub` returns `token` (user UUID). Send `Authorization: B
 npm test
 ```
 
-Runs Vitest smoke tests in `apps/api` (health, CORS preflight, auth gate).
+Runs Vitest tests in `apps/api` (health, CORS, auth register/login/session, password hashing).
 
 ## API overview
 
 | Method | Path | Role | Description |
 |--------|------|------|-------------|
-| POST | `/auth/stub` | — | Create/login stub user |
+| POST | `/auth/register` | — | Create account (business or specialist) |
+| POST | `/auth/login` | — | Email + password sign-in |
+| POST | `/auth/logout` | authenticated | Revoke session |
+| GET | `/auth/me` | authenticated | Current user |
 | POST | `/missions` | business | Create mission |
 | GET | `/missions/mine` | business | List own missions |
 | GET | `/missions/available` | specialist | Open missions |
