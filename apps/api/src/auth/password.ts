@@ -1,6 +1,8 @@
 const ALGORITHM = "PBKDF2";
 const HASH_ALG = "SHA-256";
-export const PBKDF2_ITERATIONS = 600_000;
+/** Cloudflare Workers Web Crypto PBKDF2 limit (see Workers docs). */
+export const WORKERS_PBKDF2_MAX_ITERATIONS = 100_000;
+export const PBKDF2_ITERATIONS = WORKERS_PBKDF2_MAX_ITERATIONS;
 const SALT_BYTES = 16;
 const HASH_BYTES = 32;
 
