@@ -1,0 +1,20 @@
+{
+  "name": "css-platform",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev -w @css/api",
+    "dev:web": "npm run dev -w @css/web",
+    "build": "npm run build -w @css/api && npm run build -w @css/web",
+    "test": "npm run test -w @css/api",
+    "migrate": "node scripts/migrate.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@neondatabase/serverless": "^0.10.4"
+  }
+}

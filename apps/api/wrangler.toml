@@ -1,0 +1,17 @@
+name = "css-api"
+main = "src/index.ts"
+compatibility_date = "2024-11-12"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+ENVIRONMENT = "development"
+
+# Secret (not in repo): wrangler secret put DATABASE_URL
+# Paste your Neon connection string for project "CSS".
+
+[[r2_buckets]]
+binding = "REPORT_PHOTOS"
+bucket_name = "css-report-photos"
+
+[dev]
+port = 8787
