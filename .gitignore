@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs & OS
+*.log
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+# Test / coverage
+coverage/
