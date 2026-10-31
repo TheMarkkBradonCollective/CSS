@@ -1,5 +1,5 @@
 import { createMiddleware } from "hono/factory";
-import type { Bindings, Variables } from "./types";
+import type { Bindings, Variables } from "../types";
 import { getSql } from "../db";
 
 /** Stub auth: send `Authorization: Bearer <user-uuid>` after POST /auth/stub. */
