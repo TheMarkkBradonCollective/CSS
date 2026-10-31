@@ -1,8 +1,10 @@
 import { createMiddleware } from "hono/factory";
 import type { Bindings, Variables } from "../types";
 import { getSql } from "../db";
+import { hashSessionToken } from "../auth/session";
+import { mapUser } from "../auth/users";
 
-/** Stub auth: send `Authorization: Bearer <user-uuid>` after POST /auth/stub. */
+/** Send `Authorization: Bearer <session-token>` from login or register. */
 export const authMiddleware = createMiddleware<{
   Bindings: Bindings;
   Variables: Variables;
@@ -16,30 +18,26 @@ export const authMiddleware = createMiddleware<{
     return c.json({ error: "Unauthorized" }, 401);
   }
 
+  const tokenHash = await hashSessionToken(token);
   const sql = getSql(c.env);
   const rows = await sql`
-    SELECT id, email, display_name, role
-    FROM users
-    WHERE id = ${token}::uuid
+    SELECT u.id, u.email, u.display_name, u.role
+    FROM sessions s
+    INNER JOIN users u ON u.id = s.user_id
+    WHERE s.token_hash = ${tokenHash}
+      AND s.expires_at > now()
   `;
 
   if (rows.length === 0) {
-    return c.json({ error: "Invalid token" }, 401);
+    return c.json({ error: "Invalid or expired session" }, 401);
   }
 
-  const row = rows[0] as {
+  c.set("user", mapUser(rows[0] as {
     id: string;
     email: string;
     display_name: string;
     role: "business" | "specialist" | "admin";
-  };
-
-  c.set("user", {
-    id: row.id,
-    email: row.email,
-    displayName: row.display_name,
-    role: row.role,
-  });
+  }));
 
   await next();
 });

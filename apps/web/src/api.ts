@@ -59,20 +59,50 @@ export async function apiFetch<T>(
   return data;
 }
 
-export async function stubLogin(input: {
+type AuthResponse = { token: string; user: AuthUser };
+
+export async function register(input: {
   email: string;
+  password: string;
   displayName: string;
   role: "business" | "specialist";
   businessName?: string;
   specialistLevel?: number;
 }) {
-  const data = await apiFetch<{ token: string; user: AuthUser }>(
-    "/auth/stub",
-    {
-      method: "POST",
-      body: JSON.stringify(input),
-    },
-  );
+  const data = await apiFetch<AuthResponse>("/auth/register", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
   setSession(data.token, data.user);
   return data.user;
+}
+
+export async function login(input: { email: string; password: string }) {
+  const data = await apiFetch<AuthResponse>("/auth/login", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  setSession(data.token, data.user);
+  return data.user;
+}
+
+export async function logoutApi() {
+  try {
+    await apiFetch("/auth/logout", { method: "POST", body: "{}" });
+  } catch {
+    // clear local session even if network fails
+  }
+  clearSession();
+}
+
+export async function fetchMe(): Promise<AuthUser | null> {
+  if (!getToken()) return null;
+  try {
+    const data = await apiFetch<{ user: AuthUser }>("/auth/me");
+    setSession(getToken()!, data.user);
+    return data.user;
+  } catch {
+    clearSession();
+    return null;
+  }
 }
