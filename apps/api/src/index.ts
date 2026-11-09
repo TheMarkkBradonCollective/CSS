@@ -4,13 +4,15 @@ import authRoutes from "./routes/auth";
 import missionRoutes from "./routes/missions";
 import assignmentRoutes from "./routes/assignments";
 import photoRoutes from "./routes/photos";
+import adminRoutes from "./routes/admin";
+import staffRoutes from "./routes/staff";
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 app.use("*", async (c, next) => {
   const origin = c.req.header("Origin") ?? "*";
   c.header("Access-Control-Allow-Origin", origin);
-  c.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  c.header("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS");
   c.header(
     "Access-Control-Allow-Headers",
     "Content-Type, Authorization",
@@ -33,6 +35,8 @@ app.get("/", (c) =>
 app.get("/health", (c) => c.json({ ok: true }));
 
 app.route("/auth", authRoutes);
+app.route("/admin", adminRoutes);
+app.route("/staff", staffRoutes);
 app.route("/missions", missionRoutes);
 app.route("/assignments", assignmentRoutes);
 app.route("/reports/photos", photoRoutes);

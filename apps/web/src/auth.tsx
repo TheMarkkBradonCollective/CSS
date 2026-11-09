@@ -8,7 +8,6 @@ import {
 } from "react";
 import {
   type AuthUser,
-  clearSession,
   fetchMe,
   getStoredUser,
   getToken,

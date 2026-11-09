@@ -1,4 +1,4 @@
-export type UserRole = "business" | "specialist" | "admin";
+export type UserRole = "business" | "specialist" | "admin" | "founder";
 
 export type Bindings = {
   DATABASE_URL: string;

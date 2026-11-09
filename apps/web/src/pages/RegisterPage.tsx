@@ -2,11 +2,12 @@ import { FormEvent, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { register } from "../api";
 import { useAuth } from "../auth";
+import { homePath, roleLabel, type PublicRegisterRole } from "../roles";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
   const { setUser, user } = useAuth();
-  const [role, setRole] = useState<"business" | "specialist">("business");
+  const [role, setRole] = useState<PublicRegisterRole>("business");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -17,10 +18,7 @@ export default function RegisterPage() {
 
   if (user) {
     return (
-      <Navigate
-        to={user.role === "business" ? "/business" : "/specialist"}
-        replace
-      />
+      <Navigate to={homePath(user.role)} replace />
     );
   }
   async function onSubmit(e: FormEvent) {
@@ -37,7 +35,7 @@ export default function RegisterPage() {
         specialistLevel: role === "specialist" ? level : undefined,
       });
       setUser(next);
-      navigate(next.role === "business" ? "/business" : "/specialist");
+      navigate(homePath(next.role));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
     } finally {
@@ -56,8 +54,8 @@ export default function RegisterPage() {
             value={role}
             onChange={(e) => setRole(e.target.value as typeof role)}
           >
-            <option value="business">Business</option>
-            <option value="specialist">Specialist</option>
+            <option value="business">{roleLabel("business")}</option>
+            <option value="specialist">{roleLabel("specialist")}</option>
           </select>
         </label>
         <label className="field">

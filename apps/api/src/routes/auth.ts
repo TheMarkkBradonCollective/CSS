@@ -8,7 +8,9 @@ import {
   sessionExpiresAt,
 } from "../auth/session";
 import { mapUser } from "../auth/users";
+import { FOUNDER_OWNER_EMAIL, isPublicRegisterRole } from "../auth/roles";
 import { authMiddleware } from "../middleware/auth";
+import type { UserRole } from "../types";
 
 const auth = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -32,7 +34,7 @@ auth.post("/register", async (c) => {
     email: string;
     password: string;
     displayName: string;
-    role: "business" | "specialist";
+    role: string;
     businessName?: string;
     specialistLevel?: number;
     specialistCategory?: string;
@@ -47,16 +49,52 @@ auth.post("/register", async (c) => {
   if (passwordError) {
     return c.json({ error: passwordError }, 400);
   }
-  if (body.role !== "business" && body.role !== "specialist") {
-    return c.json({ error: "role must be business or specialist" }, 400);
-  }
-
   const sql = getSql(c.env);
   const existing = await sql`
-    SELECT id FROM users WHERE email = ${email}
+    SELECT id, role, password_hash FROM users WHERE email = ${email}
   `;
   if (existing.length > 0) {
+    const row = existing[0] as {
+      id: string;
+      role: string;
+      password_hash: string | null;
+    };
+    // Seeded owner has the founder role and no password yet. Registration
+    // sets the first password and does not change the role.
+    if (
+      row.role === "founder" &&
+      !row.password_hash &&
+      email === FOUNDER_OWNER_EMAIL
+    ) {
+      const passwordHash = await hashPassword(body.password);
+      const updated = await sql`
+        UPDATE users
+        SET password_hash = ${passwordHash},
+            display_name = ${displayName}
+        WHERE id = ${row.id}::uuid
+        RETURNING id, email, display_name, role
+      `;
+      const user = updated[0] as {
+        id: string;
+        email: string;
+        display_name: string;
+        role: UserRole;
+      };
+      const session = await createSession(c.env, user.id);
+      return c.json(
+        {
+          token: session.token,
+          expiresAt: session.expiresAt.toISOString(),
+          user: mapUser(user),
+        },
+        201,
+      );
+    }
     return c.json({ error: "Email already registered" }, 409);
+  }
+
+  if (!isPublicRegisterRole(body.role)) {
+    return c.json({ error: "role must be business or specialist" }, 400);
   }
 
   const passwordHash = await hashPassword(body.password);
@@ -123,7 +161,7 @@ auth.post("/login", async (c) => {
     id: string;
     email: string;
     display_name: string;
-    role: "business" | "specialist" | "admin";
+    role: UserRole;
     password_hash: string | null;
   };
 

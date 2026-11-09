@@ -2,6 +2,7 @@ import { FormEvent, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { login } from "../api";
 import { useAuth } from "../auth";
+import { homePath } from "../roles";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -13,10 +14,7 @@ export default function LoginPage() {
 
   if (user) {
     return (
-      <Navigate
-        to={user.role === "business" ? "/business" : "/specialist"}
-        replace
-      />
+      <Navigate to={homePath(user.role)} replace />
     );
   }
   async function onSubmit(e: FormEvent) {
@@ -26,7 +24,7 @@ export default function LoginPage() {
     try {
       const next = await login({ email: email.trim(), password });
       setUser(next);
-      navigate(next.role === "business" ? "/business" : "/specialist");
+      navigate(homePath(next.role));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
