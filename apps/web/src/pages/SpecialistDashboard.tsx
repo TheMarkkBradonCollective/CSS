@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { apiFetch, getApiBase, getToken } from "../api";
 import { useAuth } from "../auth";
+import { homePath } from "../roles";
 
 type Mission = {
   id: string;
@@ -33,7 +34,7 @@ export default function SpecialistDashboard() {
   const [message, setMessage] = useState<string | null>(null);
 
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== "specialist") return <Navigate to="/business" replace />;
+  if (user.role !== "specialist") return <Navigate to={homePath(user.role)} replace />;
 
   async function loadMissions() {
     const data = await apiFetch<{ missions: Mission[] }>("/missions/available");

@@ -1,13 +1,16 @@
 import { Link, Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./auth";
+import { homePath, roleLabel } from "./roles";
 import BusinessDashboard from "./pages/BusinessDashboard";
 import SpecialistDashboard from "./pages/SpecialistDashboard";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import MissionReportPage from "./pages/MissionReportPage";
+import AdminHome from "./pages/AdminHome";
+import FounderDashboard from "./pages/FounderDashboard";
 
 function Shell({ children }: { children: React.ReactNode }) {
-  const { user, logout, loading } = useAuth();
+  const { user, logout } = useAuth();
   return (
     <div className="app-shell">
       <header className="top-bar">
@@ -16,7 +19,12 @@ function Shell({ children }: { children: React.ReactNode }) {
         </Link>
         {user ? (
           <div className="top-actions">
-            <span className="pill">{user.role}</span>
+            {user.role === "founder" ? (
+              <Link to="/founder" className="btn ghost small">
+                Team
+              </Link>
+            ) : null}
+            <span className="pill">{roleLabel(user.role)}</span>
             <button type="button" className="btn ghost" onClick={logout}>
               Sign out
             </button>
@@ -32,8 +40,7 @@ function HomeRedirect() {
   const { user, loading } = useAuth();
   if (loading) return <p className="muted">Loading…</p>;
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role === "business") return <Navigate to="/business" replace />;
-  return <Navigate to="/specialist" replace />;
+  return <Navigate to={homePath(user.role)} replace />;
 }
 
 export default function App() {
@@ -46,6 +53,8 @@ export default function App() {
         <Route path="/business" element={<BusinessDashboard />} />
         <Route path="/business/missions/:id/report" element={<MissionReportPage />} />
         <Route path="/specialist" element={<SpecialistDashboard />} />
+        <Route path="/admin" element={<AdminHome />} />
+        <Route path="/founder" element={<FounderDashboard />} />
       </Routes>
     </Shell>
   );

@@ -25,6 +25,9 @@ describe("CSS API", () => {
     expect(res.headers.get("Access-Control-Allow-Origin")).toBe(
       "http://localhost:5173",
     );
+    const methods = res.headers.get("Access-Control-Allow-Methods") ?? "";
+    expect(methods).toContain("PATCH");
+    expect(methods).toContain("DELETE");
   });
 
   it("protected route rejects missing auth", async () => {

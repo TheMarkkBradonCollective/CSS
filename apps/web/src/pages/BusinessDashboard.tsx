@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { apiFetch } from "../api";
 import { useAuth } from "../auth";
+import { homePath } from "../roles";
 
 type Mission = {
   id: string;
@@ -28,7 +29,7 @@ export default function BusinessDashboard() {
   const [error, setError] = useState<string | null>(null);
 
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== "business") return <Navigate to="/specialist" replace />;
+  if (user.role !== "business") return <Navigate to={homePath(user.role)} replace />;
 
   async function load() {
     const data = await apiFetch<{ missions: Mission[] }>("/missions/mine");

@@ -1,4 +1,6 @@
-export type UserRole = "business" | "specialist" | "admin";
+import type { ManagedRole, UserRole } from "./roles";
+
+export type { ManagedRole, UserRole };
 
 export type AuthUser = {
   id: string;
@@ -93,6 +95,29 @@ export async function logoutApi() {
     // clear local session even if network fails
   }
   clearSession();
+}
+
+export type StaffAccount = {
+  id: string;
+  email: string;
+  displayName: string;
+  role: ManagedRole;
+  createdAt: string;
+};
+
+export function listStaff() {
+  return apiFetch<{ accounts: StaffAccount[] }>("/staff");
+}
+
+export function updateStaffRole(id: string, role: ManagedRole) {
+  return apiFetch<{ account: StaffAccount }>(`/staff/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ role }),
+  });
+}
+
+export function removeStaff(id: string) {
+  return apiFetch<{ ok: true }>(`/staff/${id}`, { method: "DELETE" });
 }
 
 export async function fetchMe(): Promise<AuthUser | null> {

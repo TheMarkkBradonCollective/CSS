@@ -9,6 +9,7 @@
     "dev:web": "npm run dev -w @css/web",
     "build": "npm run build -w @css/api && npm run build -w @css/web",
     "test": "npm run test -w @css/api",
+    "lint": "npm run typecheck -w @css/api && npm run typecheck -w @css/web",
     "migrate": "node scripts/migrate.mjs"
   },
   "engines": {

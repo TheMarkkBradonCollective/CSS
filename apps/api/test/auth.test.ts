@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import app from "../src/index";
 import { setSqlOverride } from "../src/db";
-import { testDbState } from "./mock-sql";
+import { FOUNDER_OWNER_EMAIL } from "../src/auth/roles";
+import { resetTestDb, testDbState } from "./mock-sql";
 
 const env = {
   DATABASE_URL: "postgres://mock/css",
@@ -15,8 +16,7 @@ describe("auth routes", () => {
 
   afterEach(() => {
     setSqlOverride(null);
-    testDbState.users.length = 0;
-    testDbState.sessions.length = 0;
+    resetTestDb();
   });
 
   it("registers a business user and returns a session token", async () => {
@@ -174,5 +174,123 @@ describe("auth routes", () => {
       env,
     );
     expect(me.status).toBe(401);
+  });
+
+  it("rejects self-service registration as admin or founder", async () => {
+    for (const role of ["admin", "founder"]) {
+      const res = await app.request(
+        "/auth/register",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: `${role}@css.app`,
+            password: "password123",
+            displayName: "Nope",
+            role,
+          }),
+        },
+        env,
+      );
+      expect(res.status).toBe(400);
+      const json = (await res.json()) as { error: string };
+      expect(json.error).toMatch(/business or specialist/);
+    }
+    expect(testDbState.users).toHaveLength(0);
+  });
+
+  it("lets the seeded owner set a password without leaving founder", async () => {
+    testDbState.users.push({
+      id: "00000000-0000-4000-8000-000000000010",
+      email: FOUNDER_OWNER_EMAIL,
+      display_name: "Markk",
+      role: "founder",
+      password_hash: null,
+      created_at: "2026-01-01T00:00:00.000Z",
+    });
+
+    const res = await app.request(
+      "/auth/register",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: FOUNDER_OWNER_EMAIL,
+          password: "password123",
+          displayName: "Markk",
+          role: "business",
+        }),
+      },
+      env,
+    );
+    expect(res.status).toBe(201);
+    const json = (await res.json()) as { token: string; user: { role: string; email: string } };
+    expect(json.user.role).toBe("founder");
+    expect(json.user.email).toBe(FOUNDER_OWNER_EMAIL);
+    expect(testDbState.businesses).toHaveLength(0);
+    expect(testDbState.users).toHaveLength(1);
+    expect(testDbState.users[0]?.role).toBe("founder");
+    expect(testDbState.users[0]?.password_hash).toBeTruthy();
+
+    const login = await app.request(
+      "/auth/login",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: FOUNDER_OWNER_EMAIL,
+          password: "password123",
+        }),
+      },
+      env,
+    );
+    expect(login.status).toBe(200);
+    const loggedIn = (await login.json()) as { user: { role: string } };
+    expect(loggedIn.user.role).toBe("founder");
+
+    const again = await app.request(
+      "/auth/register",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: FOUNDER_OWNER_EMAIL,
+          password: "password123",
+          displayName: "Markk",
+          role: "admin",
+        }),
+      },
+      env,
+    );
+    expect(again.status).toBe(409);
+    expect(testDbState.users[0]?.role).toBe("founder");
+  });
+
+  it("does not let another passwordless founder claim the owner flow", async () => {
+    testDbState.users.push({
+      id: "00000000-0000-4000-8000-000000000011",
+      email: "other-founder@css.app",
+      display_name: "Other",
+      role: "founder",
+      password_hash: null,
+      created_at: "2026-01-01T00:00:00.000Z",
+    });
+    const res = await app.request(
+      "/auth/register",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: "other-founder@css.app",
+          password: "password123",
+          displayName: "Other",
+          role: "specialist",
+        }),
+      },
+      env,
+    );
+    expect(res.status).toBe(409);
+    expect(testDbState.users[0]?.password_hash).toBeNull();
+    expect(testDbState.users[0]?.role).toBe("founder");
   });
 });

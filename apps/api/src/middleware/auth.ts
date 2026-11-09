@@ -1,8 +1,9 @@
 import { createMiddleware } from "hono/factory";
-import type { Bindings, Variables } from "../types";
+import type { Bindings, UserRole, Variables } from "../types";
 import { getSql } from "../db";
 import { hashSessionToken } from "../auth/session";
 import { mapUser } from "../auth/users";
+import { isUserRole, roleIsAllowed } from "../auth/roles";
 
 /** Send `Authorization: Bearer <session-token>` from login or register. */
 export const authMiddleware = createMiddleware<{
@@ -32,23 +33,32 @@ export const authMiddleware = createMiddleware<{
     return c.json({ error: "Invalid or expired session" }, 401);
   }
 
-  c.set("user", mapUser(rows[0] as {
+  const row = rows[0] as {
     id: string;
     email: string;
     display_name: string;
-    role: "business" | "specialist" | "admin";
-  }));
+    role: string;
+  };
+  if (!isUserRole(row.role)) {
+    return c.json({ error: "Forbidden" }, 403);
+  }
+
+  c.set("user", mapUser(row));
 
   await next();
 });
 
-export function requireRole(...roles: Array<"business" | "specialist" | "admin">) {
+/**
+ * Role gate. Founder passes every check that includes admin
+ * (see roleIsAllowed) and does not inherit business or specialist routes.
+ */
+export function requireRole(...roles: UserRole[]) {
   return createMiddleware<{
     Bindings: Bindings;
     Variables: Variables;
   }>(async (c, next) => {
     const user = c.get("user");
-    if (!roles.includes(user.role)) {
+    if (!roleIsAllowed(user.role, roles)) {
       return c.json({ error: "Forbidden" }, 403);
     }
     await next();

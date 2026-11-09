@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { apiFetch, getApiBase } from "../api";
 import { useAuth } from "../auth";
+import { homePath } from "../roles";
 
 type ReportPayload = {
   report: {
@@ -20,7 +21,7 @@ export default function MissionReportPage() {
   const [error, setError] = useState<string | null>(null);
 
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== "business") return <Navigate to="/specialist" replace />;
+  if (user.role !== "business") return <Navigate to={homePath(user.role)} replace />;
 
   useEffect(() => {
     if (!id) return;

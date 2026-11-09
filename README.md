@@ -113,7 +113,29 @@ Set Pages environment variable:
 
 Sessions: `POST /auth/login` or `/auth/register` returns a `token`. Send `Authorization: Bearer <token>` on protected routes. `POST /auth/logout` revokes the session; `GET /auth/me` returns the current user.
 
-After upgrading an existing database, run `npm run migrate` so `002_auth.sql` is applied. Users created before real auth have no password and must register again or reset via a future admin flow.
+After upgrading an existing database, run `npm run migrate` so `002_auth.sql`, `003_founder_role.sql`, and `004_founder_owner.sql` are applied. Users created before real auth have no password and must register again or reset via a future admin flow.
+
+## Roles
+
+Authority runs low to high: `business`, `specialist` (staff), `admin`, `founder`.
+
+| Role | Value | Access |
+|------|--------|--------|
+| Business | `business` | Post missions and read their reports |
+| Specialist | `specialist` | Accept missions and submit reports. These are staff accounts |
+| Admin | `admin` | Admin checks |
+| Founder | `founder` | Every admin check, plus promote, demote, and remove specialist staff and admin accounts |
+
+The owner **Markk** (`themarkkbrandoncollective@gmail.com`) holds `founder`. Public registration offers Business and Specialist only. No other role can change or remove a Founder, and the staff API cannot assign `founder`.
+
+| Migration | What it does |
+|-----------|----------------|
+| `migrations/003_founder_role.sql` | Adds enum value `founder` after `admin` |
+| `migrations/004_founder_owner.sql` | Sets that user's role to `founder`. Stores no password |
+
+Postgres cannot use a new enum value in the same transaction that adds it, so the owner update is a second file. Role value string: `founder`.
+
+If that email already exists, the migration changes only the role. If the migration inserts the row, it has no password; registering that email once sets the password and leaves the role as Founder.
 
 ## 6. Tests
 
@@ -121,7 +143,9 @@ After upgrading an existing database, run `npm run migrate` so `002_auth.sql` is
 npm test
 ```
 
-Runs Vitest tests in `apps/api` (health, CORS, auth register/login/session, password hashing).
+Runs Vitest tests in `apps/api` (health, CORS, auth register/login/session, founder role guards, staff management, password hashing).
+
+CI (`.github/workflows/ci.yml`) runs test, lint, and build on Node.js 22. The API build includes `wrangler deploy --dry-run`.
 
 ## API overview
 
@@ -138,6 +162,10 @@ Runs Vitest tests in `apps/api` (health, CORS, auth register/login/session, pass
 | POST | `/assignments/:id/report` | specialist | Submit report + photo |
 | GET | `/missions/:id/report` | business | View submitted report |
 | GET | `/reports/photos/:photoId` | — | Stream photo from R2 |
+| GET | `/admin/me` | admin, founder | Admin-level session. Founder passes this check |
+| GET | `/staff` | founder | List specialist staff and admin accounts |
+| PATCH | `/staff/:id` | founder | Promote or demote (`specialist` or `admin`) |
+| DELETE | `/staff/:id` | founder | Remove a specialist or admin account |
 
 ## Product context
 

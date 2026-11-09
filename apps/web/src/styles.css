@@ -115,6 +115,11 @@ select {
   color: #082f49;
 }
 
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .btn.ghost {
   background: transparent;
   border: 1px solid rgba(148, 163, 184, 0.35);
@@ -123,6 +128,42 @@ select {
 .btn.small {
   padding: 0.45rem 0.75rem;
   font-size: 0.85rem;
+}
+
+.btn.danger {
+  background: rgba(248, 113, 113, 0.16);
+  color: #fecaca;
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+
+.inline-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.role-select {
+  width: auto;
+  min-width: 9.5rem;
+}
+
+.account-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.account-meta strong,
+.account-meta span {
+  overflow-wrap: anywhere;
 }
 
 .pill {
