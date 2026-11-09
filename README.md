@@ -97,11 +97,7 @@ npm run build
 npx wrangler pages deploy dist --project-name=css-web
 ```
 
-Set Pages environment variable:
-
-- `VITE_API_URL` — public URL of the deployed `css-api` Worker
-
-`apps/web/wrangler.toml` documents `pages_build_output_dir = "dist"`.
+Production builds load `apps/web/.env.production`, which sets `VITE_API_URL` to `https://css-api.themarkkbrandoncollective-2d9.workers.dev`. `npm run dev:web` still falls back to `http://localhost:8787` unless you override it. `apps/web/wrangler.toml` sets the same URL for the Pages project and documents `pages_build_output_dir = "dist"`.
 
 ## 5. Core loop (email + password auth)
 
